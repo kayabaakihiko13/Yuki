@@ -1,22 +1,24 @@
 import gym
 import os
 import numpy as np
-from PIL import Image
 import torch
 
-from breakout import *
+from breakout import DQNBreakout
 from model import AtariNet
-os.environ['KMP_DUPLICATE_LIB_OK'] ='TRUE'
+from agent import ReplayMemory,Agent
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
+# Konfigurasi perangkat
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-enviroment = DQNBreakout(device=device,render_mode='human')
-
-model = AtariNet(nb_action=4)
+memory = ReplayMemory(capacity=1000, device=device)
+# Inisialisasi
+env = DQNBreakout(device=device, render_mode='human')
+model = AtariNet(4)
 model.to(device)
 model.load_model()
-state = enviroment.reset()
+agent = Agent(model=model,device=device,
+              epsilon=1.0,nb_warmup=5e4,nb_actions=4,lr=1e-5,
+              memory_capacity=1e6,batch_size=64)
 
-print(model.forward(state))
-# for _ in range(100):
-#     action = enviroment.action_space.sample()
-#     state,reward,done,info = enviroment.step(action)
+agent.train(env=env,epcohs=200_000)
